@@ -8,7 +8,8 @@ const execAsync = promisify(exec);
  */
 function commandExists(cmd) {
   try {
-    execSync(`which ${cmd}`, { stdio: 'ignore' });
+    const check = process.platform === 'win32' ? `where ${cmd}` : `which ${cmd}`;
+    execSync(check, { stdio: 'ignore' });
     return true;
   } catch {
     return false;

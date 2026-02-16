@@ -45,6 +45,20 @@
     "enabled": false
   },
   {
+    "name": "monthly-rent-report",
+    "schedule": "0 9 1 * *",
+    "type": "agent",
+    "job": "Read the file at operating_system/RENT_REPORT.md and complete the tasks described there.",
+    "enabled": false
+  },
+  {
+    "name": "daily-contract-check",
+    "schedule": "0 9 * * *",
+    "type": "agent",
+    "job": "Read the file at operating_system/CONTRACT_CHECK.md and complete the tasks described there.",
+    "enabled": false
+  },
+  {
     "name": "daily-financial-research",
     "schedule": "0 14 * * 1-5",
     "type": "agent",

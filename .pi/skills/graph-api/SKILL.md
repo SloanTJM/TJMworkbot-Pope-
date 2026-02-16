@@ -1,0 +1,72 @@
+---
+name: graph-api
+description: Read and write data in the TJM Real Estate OneDrive Excel workbook via Microsoft Graph API. Use for rent tracking, payment logging, contract management, and utility tracking.
+---
+
+# Microsoft Graph API — OneDrive Excel Access
+
+## Read Worksheet Rows
+
+```bash
+node /job/.pi/skills/graph-api/graph.js read <sheetName> [startRow] [endRow]
+```
+
+Reads rows from a worksheet. Returns JSON array of row arrays.
+
+- `sheetName` — Sheet name (e.g., `Transactions`, `Contracts`)
+- `startRow` — Optional start row (1-based, default: 1)
+- `endRow` — Optional end row (default: all rows)
+
+**Examples:**
+
+```bash
+# Read all transactions
+node /job/.pi/skills/graph-api/graph.js read Transactions
+
+# Read first 10 rows of Contracts
+node /job/.pi/skills/graph-api/graph.js read Contracts 1 10
+```
+
+## Append a Row
+
+```bash
+node /job/.pi/skills/graph-api/graph.js append <sheetName> <json_array>
+```
+
+Appends a single row to the end of a worksheet.
+
+- `sheetName` — Sheet name
+- `json_array` — JSON array of cell values
+
+**Examples:**
+
+```bash
+# Log a rent payment
+node /job/.pi/skills/graph-api/graph.js append Transactions '["2026-02-15","1234","Gunter_1","Jessie Lathom","Rent",800,"2026-02-01","February rent"]'
+```
+
+## List Sheets
+
+```bash
+node /job/.pi/skills/graph-api/graph.js sheets
+```
+
+Lists all worksheet names in the workbook.
+
+## Data Reference
+
+The Excel file has two main sheets:
+
+**Transactions** (columns A-H): Date, Check_Num, Property_ID, Tenant, Type, Amount, Period, Notes
+
+**Contracts** (columns A-M): Property_ID, Property_Type, Tenant_Name, Monthly_Rent, Billing_Cycle, Contract_Start, Contract_End, Active, Notify_Days, Vinyl_Required, Vinyl_Contact, Notes, Email
+
+## Authentication
+
+Uses Azure AD client credentials flow. Requires these env vars (from LLM_SECRETS):
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_CLIENT_SECRET`
+- `ONEDRIVE_USER_ID` — Microsoft 365 user ID or UPN
+
+File path defaults to `/TJM/Real Estate/TJM_RENT_v2.xlsx` (override with `ONEDRIVE_FILE_PATH`).
