@@ -32,21 +32,27 @@ You have been triggered to generate and send a lease agreement as a PDF attachme
    ```bash
    mkdir -p /job/tmp
    ```
-   Write the rendered HTML to `/job/tmp/lease.html`, then convert to PDF using Playwright.
+   Write the rendered HTML to `/job/tmp/lease.html`, then convert to PDF using Puppeteer.
 
    **PDF filename** must be professional and customer-facing. Format:
    `Lease_Agreement_<Tenant_Name>_<Street_Address>.pdf`
    - Replace spaces with underscores, remove special characters
    - Example: `Lease_Agreement_Christian_Lachausse_111_E_Main_St.pdf`
 
+   First, ensure Puppeteer is available:
+   ```bash
+   node -e "require('puppeteer')" 2>/dev/null || npm install --prefix /job/tmp puppeteer
+   ```
+
+   Then generate the PDF:
    ```bash
    node -e "
-   const { chromium } = require('playwright');
+   const puppeteer = require('puppeteer');
    (async () => {
-     const browser = await chromium.launch();
+     const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
      const page = await browser.newPage();
      const html = require('fs').readFileSync('/job/tmp/lease.html', 'utf-8');
-     await page.setContent(html, { waitUntil: 'networkidle' });
+     await page.setContent(html, { waitUntil: 'networkidle0' });
      await page.pdf({
        path: '/job/tmp/<filename>.pdf',
        format: 'Letter',
