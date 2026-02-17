@@ -68,7 +68,7 @@ Uses Azure AD delegated auth with a refresh token (public client / device code f
 - `AZURE_TENANT_ID` — Azure AD tenant ID
 - `AZURE_REFRESH_TOKEN` — Delegated auth refresh token
 
-File path defaults to `/TJM/Real Estate/TJM_RENT_v2.xlsx` (override with `ONEDRIVE_FILE_PATH`).
+File path defaults to `/Work/Real Estate/TJM_RENT_v2.xlsx` (override with `ONEDRIVE_FILE_PATH`).
 
 ### Setup
 

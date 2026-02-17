@@ -12,12 +12,12 @@
  *   AZURE_CLIENT_ID      - Azure AD app client ID
  *   AZURE_TENANT_ID      - Azure AD tenant ID
  *   AZURE_REFRESH_TOKEN  - Delegated auth refresh token (from graph-setup.js)
- *   ONEDRIVE_FILE_PATH   - Excel file path (default: /TJM/Real Estate/TJM_RENT_v2.xlsx)
+ *   ONEDRIVE_FILE_PATH   - Excel file path (default: /Work/Real Estate/TJM_RENT_v2.xlsx)
  */
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 const TOKEN_URL_TEMPLATE = 'https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token';
-const DEFAULT_FILE_PATH = '/TJM/Real Estate/TJM_RENT_v2.xlsx';
+const DEFAULT_FILE_PATH = '/Work/Real Estate/TJM_RENT_v2.xlsx';
 
 // --- Auth ---
 
