@@ -32,20 +32,25 @@ You have been triggered to generate and send a lease agreement as a PDF attachme
    ```bash
    mkdir -p /job/tmp
    ```
-   Write the rendered HTML to `/job/tmp/lease_<Property_ID>.html`, then convert to PDF using Playwright:
+   Write the rendered HTML to `/job/tmp/lease.html`, then convert to PDF using Playwright.
+
+   **PDF filename** must be professional and customer-facing. Format:
+   `Lease_Agreement_<Tenant_Name>_<Street_Address>.pdf`
+   - Replace spaces with underscores, remove special characters
+   - Example: `Lease_Agreement_Christian_Lachausse_111_E_Main_St.pdf`
+
    ```bash
    node -e "
    const { chromium } = require('playwright');
    (async () => {
      const browser = await chromium.launch();
      const page = await browser.newPage();
-     const html = require('fs').readFileSync('/job/tmp/lease_<Property_ID>.html', 'utf-8');
+     const html = require('fs').readFileSync('/job/tmp/lease.html', 'utf-8');
      await page.setContent(html, { waitUntil: 'networkidle' });
      await page.pdf({
-       path: '/job/tmp/lease_<Property_ID>.pdf',
+       path: '/job/tmp/<filename>.pdf',
        format: 'Letter',
-       printBackground: true,
-       margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' }
+       printBackground: true
      });
      await browser.close();
      console.log('PDF generated');
@@ -53,10 +58,12 @@ You have been triggered to generate and send a lease agreement as a PDF attachme
    "
    ```
 
+   Note: The HTML templates use `@page` CSS rules for margins, so do NOT pass `margin` to `page.pdf()` — let the template control layout.
+
 7. **Send email with PDF attachment**:
    The email body should be a brief professional message. The lease is the PDF attachment.
    ```bash
-   node /job/.pi/skills/graph-api/graph.js send-mail "<email>" "<subject>" "<brief html body>" --attach /job/tmp/lease_<Property_ID>.pdf
+   node /job/.pi/skills/graph-api/graph.js send-mail "<email>" "<subject>" "<brief html body>" --attach /job/tmp/<filename>.pdf
    ```
 
    Email body example:
