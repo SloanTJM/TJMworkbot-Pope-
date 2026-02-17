@@ -1,6 +1,6 @@
 # Send Lease Agreement
 
-You have been triggered to generate and send a lease agreement email. The job description contains all the lease details provided by the user.
+You have been triggered to generate and send a lease agreement as a PDF attachment. The job description contains all the lease details provided by the user.
 
 ## Steps
 
@@ -23,19 +23,45 @@ You have been triggered to generate and send a lease agreement email. The job de
    - All others (`rent_house`, `apartment`, `nnn_lease`) → use `LEASE_RENT_HOUSE_TEMPLATE.html`
 
 4. **Read the appropriate HTML template**:
-   - Billboard: `operating_system/LEASE_BILLBOARD_TEMPLATE.html`
-   - Rent house: `operating_system/LEASE_RENT_HOUSE_TEMPLATE.html`
+   - Billboard: `/job/operating_system/LEASE_BILLBOARD_TEMPLATE.html`
+   - Rent house: `/job/operating_system/LEASE_RENT_HOUSE_TEMPLATE.html`
 
 5. **Replace all placeholders** with values from the job description and Excel data (see placeholder tables below).
 
-6. **Write rendered HTML** to `/job/tmp/lease_<Property_ID>.html`:
+6. **Write rendered HTML** and **convert to PDF**:
    ```bash
    mkdir -p /job/tmp
    ```
-
-7. **Send via Graph API**:
+   Write the rendered HTML to `/job/tmp/lease_<Property_ID>.html`, then convert to PDF using Playwright:
    ```bash
-   node /job/.pi/skills/graph-api/graph.js send-mail "<email>" "<subject>" "@/job/tmp/lease_<Property_ID>.html"
+   node -e "
+   const { chromium } = require('playwright');
+   (async () => {
+     const browser = await chromium.launch();
+     const page = await browser.newPage();
+     const html = require('fs').readFileSync('/job/tmp/lease_<Property_ID>.html', 'utf-8');
+     await page.setContent(html, { waitUntil: 'networkidle' });
+     await page.pdf({
+       path: '/job/tmp/lease_<Property_ID>.pdf',
+       format: 'Letter',
+       printBackground: true,
+       margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' }
+     });
+     await browser.close();
+     console.log('PDF generated');
+   })();
+   "
+   ```
+
+7. **Send email with PDF attachment**:
+   The email body should be a brief professional message. The lease is the PDF attachment.
+   ```bash
+   node /job/.pi/skills/graph-api/graph.js send-mail "<email>" "<subject>" "<brief html body>" --attach /job/tmp/lease_<Property_ID>.pdf
+   ```
+
+   Email body example:
+   ```html
+   <p>Hi {{TENANT_OR_ADVERTISER_NAME}},</p><p>Please find the attached lease agreement for the property at {{PROPERTY_ADDRESS}}.</p><p>Please review, sign, and return at your earliest convenience.</p><p>Thank you,<br>Turrentine Jackson Morrow<br>(972) 632-2787<br>Sloan@tjmfuneral.com</p>
    ```
 
 8. **Email subject format**: `Lease Agreement - <Tenant/Advertiser Name> - <Property Address>`
@@ -92,7 +118,8 @@ You have been triggered to generate and send a lease agreement email. The job de
 ## Important Notes
 
 - Create `/job/tmp/` directory before writing files: `mkdir -p /job/tmp`
-- If the job description is missing required fields, use reasonable defaults or note the omission in the email
+- The HTML templates contain the TJM logo as a base64 data URI — this renders correctly in Playwright for PDF generation
+- If the job description is missing required fields, use reasonable defaults or note the omission
 - For billboard leases, if no special provisions are specified, use: "Signed contract must be returned within 2 working days."
 - For rent house leases, if no security deposit is specified, omit that section entirely from the rendered HTML
 - If no utilities section is specified for rent house, omit that section

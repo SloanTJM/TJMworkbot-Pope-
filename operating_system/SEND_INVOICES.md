@@ -41,7 +41,7 @@ You have been triggered because one or more tenants have rent due within the nex
    - Read the HTML template at `operating_system/INVOICE_EMAIL_TEMPLATE.html`
    - Replace all placeholders (see below)
    - Write the rendered HTML to `/job/tmp/invoice_<Property_ID>.html`
-   - Send via: `node /job/.pi/skills/graph-api/graph.js send-mail "<email>" "<subject>" "@/job/tmp/invoice_<Property_ID>.html"`
+   - Send via: `node /job/.pi/skills/graph-api/graph.js send-mail "<email>" "<subject>" "@/job/tmp/invoice_<Property_ID>.html" --inline /job/operating_system/assets/TJM_logo.png:tjm-logo`
 
 5. **Log results** — print a summary of what was sent and any errors.
 

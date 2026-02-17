@@ -7,7 +7,7 @@
  *   node graph.js read <sheetName> [startRow] [endRow]
  *   node graph.js append <sheetName> <json_array>
  *   node graph.js sheets
- *   node graph.js send-mail <to> <subject> <htmlBody|@filepath>
+ *   node graph.js send-mail <to> <subject> <htmlBody|@filepath> [--attach file ...] [--inline file:cid ...]
  *   node graph.js create-sheet <name>
  *   node graph.js write-range <sheet> <range> <json_2d_array>
  *   node graph.js clear-sheet <sheet>
@@ -198,26 +198,69 @@ async function clearSheet(sheetName) {
   }
 }
 
-async function sendMail(to, subject, htmlBody) {
+async function sendMail(to, subject, htmlBody, attachFiles, inlineFiles) {
+  const fs = require('fs');
+  const path = require('path');
+
   // Support @filepath syntax — read HTML from file
   if (htmlBody.startsWith('@')) {
-    const fs = require('fs');
     const filePath = htmlBody.slice(1);
     htmlBody = fs.readFileSync(filePath, 'utf-8');
   }
 
+  const message = {
+    subject,
+    body: { contentType: 'HTML', content: htmlBody },
+    toRecipients: [{ emailAddress: { address: to } }],
+  };
+
+  // Build attachments array (file attachments + inline images)
+  const attachments = [];
+
+  if (attachFiles && attachFiles.length > 0) {
+    for (const filePath of attachFiles) {
+      const content = fs.readFileSync(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes = { '.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.html': 'text/html' };
+      attachments.push({
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: path.basename(filePath),
+        contentType: mimeTypes[ext] || 'application/octet-stream',
+        contentBytes: content.toString('base64'),
+      });
+    }
+  }
+
+  if (inlineFiles && inlineFiles.length > 0) {
+    for (const spec of inlineFiles) {
+      const [filePath, contentId] = spec.split(':');
+      const content = fs.readFileSync(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif' };
+      attachments.push({
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: path.basename(filePath),
+        contentType: mimeTypes[ext] || 'image/png',
+        contentBytes: content.toString('base64'),
+        isInline: true,
+        contentId: contentId || path.basename(filePath, ext),
+      });
+    }
+  }
+
+  if (attachments.length > 0) {
+    message.attachments = attachments;
+  }
+
   await graphRequest(`${GRAPH_BASE}/me/sendMail`, {
     method: 'POST',
-    body: JSON.stringify({
-      message: {
-        subject,
-        body: { contentType: 'HTML', content: htmlBody },
-        toRecipients: [{ emailAddress: { address: to } }],
-      },
-    }),
+    body: JSON.stringify({ message }),
   });
 
-  console.log(`Email sent to ${to}: "${subject}"`);
+  const parts = [];
+  if (attachFiles && attachFiles.length) parts.push(`${attachFiles.length} attachment(s)`);
+  if (inlineFiles && inlineFiles.length) parts.push(`${inlineFiles.length} inline image(s)`);
+  console.log(`Email sent to ${to}: "${subject}"${parts.length ? ' with ' + parts.join(', ') : ''}`);
 }
 
 // --- Main ---
@@ -271,10 +314,21 @@ async function main() {
       const body = args[2];
       if (!to || !subject || !body) {
         console.error('Error: to, subject, and htmlBody required');
-        console.error('  node graph.js send-mail <to> <subject> <htmlBody|@filepath>');
+        console.error('  node graph.js send-mail <to> <subject> <htmlBody|@filepath> [--attach file ...] [--inline file:cid ...]');
         process.exit(1);
       }
-      await sendMail(to, subject, body);
+      // Parse --attach and --inline flags from remaining args
+      const attachFiles = [];
+      const inlineFiles = [];
+      let mode = null;
+      for (let i = 3; i < args.length; i++) {
+        if (args[i] === '--attach') { mode = 'attach'; continue; }
+        if (args[i] === '--inline') { mode = 'inline'; continue; }
+        if (args[i].startsWith('--')) { mode = null; continue; }
+        if (mode === 'attach') attachFiles.push(args[i]);
+        else if (mode === 'inline') inlineFiles.push(args[i]);
+      }
+      await sendMail(to, subject, body, attachFiles, inlineFiles);
       break;
     }
 
