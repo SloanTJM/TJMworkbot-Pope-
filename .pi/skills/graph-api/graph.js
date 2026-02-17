@@ -6,6 +6,7 @@
  * Usage:
  *   node graph.js read <sheetName> [startRow] [endRow]
  *   node graph.js append <sheetName> <json_array>
+ *   node graph.js update <sheetName> <cellAddress> <value>
  *   node graph.js sheets
  *
  * Environment variables (from LLM_SECRETS):
@@ -13,11 +14,13 @@
  *   AZURE_TENANT_ID      - Azure AD tenant ID
  *   AZURE_REFRESH_TOKEN  - Delegated auth refresh token (from graph-setup.js)
  *   ONEDRIVE_FILE_PATH   - Excel file path (default: /TJM/Real Estate/TJM_RENT_v2.xlsx)
+ *   ONEDRIVE_FILE_ID     - Optionally use file ID instead of path
  */
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 const TOKEN_URL_TEMPLATE = 'https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token';
 const DEFAULT_FILE_PATH = '/TJM/Real Estate/TJM_RENT_v2.xlsx';
+const DEFAULT_FILE_ID = '01IJ3YPQTHFLZQC3BV6BDYFUVSYJ437DSF'; // Fallback if path fails
 
 // --- Auth ---
 
@@ -56,6 +59,12 @@ async function getAccessToken() {
 // --- Graph helpers ---
 
 function getWorkbookUrl() {
+  // Prefer file ID if provided, fall back to path
+  const fileId = process.env.ONEDRIVE_FILE_ID || DEFAULT_FILE_ID;
+  if (fileId) {
+    return `${GRAPH_BASE}/me/drive/items/${fileId}/workbook`;
+  }
+  
   const filePath = process.env.ONEDRIVE_FILE_PATH || DEFAULT_FILE_PATH;
   // Encode the path, but keep forward slashes
   const encodedPath = filePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
@@ -144,6 +153,28 @@ async function appendRow(sheetName, rowData) {
   console.log(`Row appended to ${sheetName} at row ${nextRow}`);
 }
 
+async function updateCell(sheetName, cellAddress, value) {
+  // Read current value
+  const currentRange = await graphRequest(
+    `/worksheets('${encodeURIComponent(sheetName)}')/range(address='${cellAddress}')`
+  );
+  
+  console.log(`Updating ${sheetName}!${cellAddress}`);
+  console.log(`  Current value: ${JSON.stringify(currentRange.values)}`);
+  console.log(`  New value: ${value}`);
+  
+  // Update the cell
+  await graphRequest(
+    `/worksheets('${encodeURIComponent(sheetName)}')/range(address='${cellAddress}')`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ values: [[value]] })
+    }
+  );
+  
+  console.log(`Cell updated successfully`);
+}
+
 // --- Main ---
 
 async function main() {
@@ -153,6 +184,7 @@ async function main() {
     console.error('Usage:');
     console.error('  node graph.js read <sheetName> [startRow] [endRow]');
     console.error('  node graph.js append <sheetName> <json_array>');
+    console.error('  node graph.js update <sheetName> <cellAddress> <value>');
     console.error('  node graph.js sheets');
     process.exit(1);
   }
@@ -185,9 +217,22 @@ async function main() {
       break;
     }
 
+    case 'update': {
+      const sheetName = args[0];
+      const cellAddress = args[1];
+      const value = args[2];
+      if (!sheetName || !cellAddress || value === undefined) {
+        console.error('Error: sheet name, cell address, and value required');
+        console.error('Example: node graph.js update Transactions G214 "December 2025 (12/2025)"');
+        process.exit(1);
+      }
+      await updateCell(sheetName, cellAddress, value);
+      break;
+    }
+
     default:
       console.error(`Unknown command: ${command}`);
-      console.error('Valid commands: read, append, sheets');
+      console.error('Valid commands: read, append, update, sheets');
       process.exit(1);
   }
 }

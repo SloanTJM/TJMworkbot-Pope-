@@ -45,6 +45,31 @@ Appends a single row to the end of a worksheet.
 node /job/.pi/skills/graph-api/graph.js append Transactions '["2026-02-15","1234","Gunter_1","Jessie Lathom","Rent",800,"2026-02-01","February rent"]'
 ```
 
+## Update a Cell
+
+```bash
+node /job/.pi/skills/graph-api/graph.js update <sheetName> <cellAddress> <value>
+```
+
+Updates a single cell in a worksheet.
+
+- `sheetName` — Sheet name (e.g., `Transactions`, `Contracts`)
+- `cellAddress` — Excel cell address (e.g., `G214`, `A1`, `B5`)
+- `value` — New cell value (text, number, or formula)
+
+**Examples:**
+
+```bash
+# Update a period field
+node /job/.pi/skills/graph-api/graph.js update Transactions G214 "December 2025 (12/2025)"
+
+# Update a rent amount
+node /job/.pi/skills/graph-api/graph.js update Transactions F100 5408.33
+
+# Update a tenant name
+node /job/.pi/skills/graph-api/graph.js update Contracts C5 "New Tenant Name"
+```
+
 ## List Sheets
 
 ```bash
