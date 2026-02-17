@@ -18,6 +18,12 @@ You have been triggered to generate and send a lease agreement as a PDF attachme
    ```
    Columns A-H: Property_ID, Property_Type, Address, City, State, ZIP, Broker, Notes
 
+   Also **read the Contracts sheet** for lease dates and rent:
+   ```bash
+   node /job/.pi/skills/graph-api/graph.js read Contracts
+   ```
+   Columns A-M (see REAL_ESTATE.md). Use `Contract_Start` (col H) for the lease start date and `Monthly_Rent` (col F) for rent amount as defaults — the job description may override these.
+
 3. **Determine lease type** from Property_Type:
    - `billboard` → use `LEASE_BILLBOARD_TEMPLATE.html`
    - All others (`rent_house`, `apartment`, `nnn_lease`) → use `LEASE_RENT_HOUSE_TEMPLATE.html`
@@ -112,8 +118,8 @@ You have been triggered to generate and send a lease agreement as a PDF attachme
 |---|---|
 | `{{TENANT_NAME}}` | From job description |
 | `{{PROPERTY_ADDRESS}}` | From Properties sheet: Address, City, State ZIP |
-| `{{MONTHLY_RENT}}` | Formatted dollar amount (e.g., $1,800.00) |
-| `{{LEASE_START}}` | From job description |
+| `{{MONTHLY_RENT}}` | From Contracts sheet `Monthly_Rent` (col F), formatted as dollar amount (e.g., $1,800.00) |
+| `{{LEASE_START}}` | From Contracts sheet `Contract_Start` (col H), or job description if specified |
 | `{{SECURITY_DEPOSIT}}` | From job description, or "N/A" if none |
 | `{{UTILITIES_SECTION}}` | Custom text from job description (who pays what) |
 | `{{CUSTOM_TERMS}}` | Additional terms from job description (yard, pets, parking, etc.) |
