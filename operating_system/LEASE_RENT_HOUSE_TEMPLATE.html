@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Invoice</title>
+<title>Month-to-Month Lease Agreement</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f4f4f4; font-family:Arial, Helvetica, sans-serif;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4; padding:20px 0;">
   <tr>
     <td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border:1px solid #dddddd;">
+      <table role="presentation" width="700" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border:1px solid #dddddd;">
 
         <!-- Header -->
         <tr>
@@ -19,91 +19,127 @@
           </td>
         </tr>
 
-        <!-- Invoice Title -->
+        <!-- Title -->
         <tr>
           <td style="padding:24px 32px 8px;">
-            <h2 style="margin:0; color:#1a3c5e; font-size:18px; border-bottom:2px solid #1a3c5e; padding-bottom:8px;">INVOICE</h2>
+            <h1 style="margin:0; color:#1a3c5e; font-size:20px; text-align:center; border-bottom:2px solid #1a3c5e; padding-bottom:10px;">MONTH-TO-MONTH LEASE AGREEMENT</h1>
           </td>
         </tr>
 
-        <!-- Date & Invoice Number -->
+        <!-- Date -->
         <tr>
           <td style="padding:8px 32px;">
+            <p style="margin:0; font-size:13px; color:#666666; text-align:right;">Date: {{DATE}}</p>
+          </td>
+        </tr>
+
+        <!-- 1. Parties -->
+        <tr>
+          <td style="padding:16px 32px 8px;">
+            <p style="margin:0 0 8px; font-size:13px; color:#1a3c5e; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">1. Parties</p>
+            <p style="margin:0; font-size:14px; color:#333333; line-height:1.6;">
+              This Lease Agreement is entered into between <strong>Turrentine Jackson Morrow</strong> ("Landlord") and <strong>{{TENANT_NAME}}</strong> ("Tenant").
+            </p>
+          </td>
+        </tr>
+
+        <!-- 2. Property -->
+        <tr>
+          <td style="padding:16px 32px 8px;">
+            <p style="margin:0 0 8px; font-size:13px; color:#1a3c5e; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">2. Property</p>
+            <p style="margin:0; font-size:14px; color:#333333; line-height:1.6;">
+              Landlord agrees to lease to Tenant the property located at:<br>
+              <strong>{{PROPERTY_ADDRESS}}</strong>
+            </p>
+          </td>
+        </tr>
+
+        <!-- 3. Term -->
+        <tr>
+          <td style="padding:16px 32px 8px;">
+            <p style="margin:0 0 8px; font-size:13px; color:#1a3c5e; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">3. Term</p>
+            <p style="margin:0; font-size:14px; color:#333333; line-height:1.6;">
+              This lease shall be on a <strong>month-to-month</strong> basis, commencing on <strong>{{LEASE_START}}</strong>. Either party may terminate this agreement by providing <strong>30 days written notice</strong> to the other party.
+            </p>
+          </td>
+        </tr>
+
+        <!-- 4. Rent -->
+        <tr>
+          <td style="padding:16px 32px 8px;">
+            <p style="margin:0 0 8px; font-size:13px; color:#1a3c5e; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">4. Rent</p>
+            <p style="margin:0; font-size:14px; color:#333333; line-height:1.6;">
+              Tenant agrees to pay <strong>{{MONTHLY_RENT}}</strong> per month, due on the <strong>1st</strong> of each month. Rent shall be payable to <strong>Turrentine Jackson Morrow</strong> and mailed to:
+            </p>
+            <p style="margin:8px 0 0; font-size:14px; color:#333333; line-height:1.6; padding-left:16px;">
+              PO Box 1007<br>
+              McKinney, TX 75070
+            </p>
+          </td>
+        </tr>
+
+        <!-- 5. Security Deposit -->
+        <tr>
+          <td style="padding:16px 32px 8px;">
+            <p style="margin:0 0 8px; font-size:13px; color:#1a3c5e; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">5. Security Deposit</p>
+            <p style="margin:0; font-size:14px; color:#333333; line-height:1.6;">
+              {{SECURITY_DEPOSIT}}
+            </p>
+          </td>
+        </tr>
+
+        <!-- 6. Utilities -->
+        <tr>
+          <td style="padding:16px 32px 8px;">
+            <p style="margin:0 0 8px; font-size:13px; color:#1a3c5e; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">6. Utilities</p>
+            <p style="margin:0; font-size:14px; color:#333333; line-height:1.6;">
+              {{UTILITIES_SECTION}}
+            </p>
+          </td>
+        </tr>
+
+        <!-- 7. Maintenance -->
+        <tr>
+          <td style="padding:16px 32px 8px;">
+            <p style="margin:0 0 8px; font-size:13px; color:#1a3c5e; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">7. Maintenance</p>
+            <p style="margin:0; font-size:14px; color:#333333; line-height:1.6;">
+              Tenant shall be responsible for basic upkeep and day-to-day maintenance of the property, including keeping the premises clean and in good condition. Landlord shall be responsible for structural repairs, major systems (plumbing, electrical, HVAC), and any repairs not caused by Tenant negligence.
+            </p>
+          </td>
+        </tr>
+
+        <!-- 8. Additional Terms -->
+        <tr>
+          <td style="padding:16px 32px 8px;">
+            <p style="margin:0 0 8px; font-size:13px; color:#1a3c5e; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">8. Additional Terms</p>
+            <p style="margin:0; font-size:14px; color:#333333; line-height:1.6;">
+              {{CUSTOM_TERMS}}
+            </p>
+          </td>
+        </tr>
+
+        <!-- Signature Block -->
+        <tr>
+          <td style="padding:24px 32px 16px;">
+            <p style="margin:0 0 16px; font-size:13px; color:#1a3c5e; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">Signatures</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="font-size:14px; color:#333333;">
-                  <strong>Date:</strong> {{DATE}}<br>
-                  <strong>Invoice #:</strong> {{INVOICE_NUMBER}}
+                <td width="48%" style="vertical-align:top; padding-right:12px;">
+                  <p style="margin:0 0 4px; font-size:12px; color:#888; text-transform:uppercase; letter-spacing:1px;">Landlord</p>
+                  <p style="margin:0 0 16px; font-size:14px; color:#333;"><strong>Turrentine Jackson Morrow</strong></p>
+                  <p style="margin:0; font-size:13px; color:#333; border-bottom:1px solid #333; padding-bottom:24px;">&nbsp;</p>
+                  <p style="margin:4px 0 0; font-size:12px; color:#888;">Authorized Signature</p>
+                  <p style="margin:16px 0 0; font-size:13px; color:#333; border-bottom:1px solid #333; padding-bottom:24px;">&nbsp;</p>
+                  <p style="margin:4px 0 0; font-size:12px; color:#888;">Date</p>
                 </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- Bill To -->
-        <tr>
-          <td style="padding:16px 32px 8px;">
-            <p style="margin:0 0 4px; font-size:12px; color:#888888; text-transform:uppercase; letter-spacing:1px;">Bill To</p>
-            <p style="margin:0; font-size:14px; color:#333333; line-height:1.5;">
-              {{TENANT_NAME}}<br>
-              {{TENANT_ADDRESS}}<br>
-              {{TENANT_CITY_STATE_ZIP}}
-            </p>
-          </td>
-        </tr>
-
-        <!-- Property -->
-        <tr>
-          <td style="padding:16px 32px 8px;">
-            <p style="margin:0 0 4px; font-size:12px; color:#888888; text-transform:uppercase; letter-spacing:1px;">Property</p>
-            <p style="margin:0; font-size:14px; color:#333333;">{{PROPERTY_ADDRESS}}</p>
-          </td>
-        </tr>
-
-        <!-- Amount Due -->
-        <tr>
-          <td style="padding:20px 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8f9fa; border:1px solid #e9ecef; border-radius:4px;">
-              <tr>
-                <td style="padding:16px 20px;">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td style="font-size:14px; color:#333333;">Rent Due</td>
-                      <td align="right" style="font-size:14px; color:#333333;">{{RENT_AMOUNT}}</td>
-                    </tr>
-                    <tr>
-                      <td colspan="2" style="padding:8px 0;">
-                        <hr style="border:none; border-top:1px solid #dee2e6; margin:0;">
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="font-size:16px; font-weight:bold; color:#1a3c5e;">Amount Due</td>
-                      <td align="right" style="font-size:16px; font-weight:bold; color:#1a3c5e;">{{RENT_AMOUNT}}</td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- Due Date -->
-        <tr>
-          <td style="padding:0 32px 20px;">
-            <p style="margin:0; font-size:14px; color:#333333;">
-              <strong>Due Date:</strong> {{DUE_DATE}}
-            </p>
-          </td>
-        </tr>
-
-        <!-- Payment Instructions -->
-        <tr>
-          <td style="padding:0 32px 24px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fff8e1; border:1px solid #ffe082; border-radius:4px;">
-              <tr>
-                <td style="padding:12px 16px; font-size:13px; color:#6d4c00;">
-                  Please make checks payable to <strong>{{PAYABLE_ENTITY}}</strong> and mail to:<br>
-                  PO Box 1007, McKinney, TX 75070
+                <td width="4%">&nbsp;</td>
+                <td width="48%" style="vertical-align:top; padding-left:12px;">
+                  <p style="margin:0 0 4px; font-size:12px; color:#888; text-transform:uppercase; letter-spacing:1px;">Tenant</p>
+                  <p style="margin:0 0 16px; font-size:14px; color:#333;"><strong>{{TENANT_NAME}}</strong></p>
+                  <p style="margin:0; font-size:13px; color:#333; border-bottom:1px solid #333; padding-bottom:24px;">&nbsp;</p>
+                  <p style="margin:4px 0 0; font-size:12px; color:#888;">Signature</p>
+                  <p style="margin:16px 0 0; font-size:13px; color:#333; border-bottom:1px solid #333; padding-bottom:24px;">&nbsp;</p>
+                  <p style="margin:4px 0 0; font-size:12px; color:#888;">Date</p>
                 </td>
               </tr>
             </table>
@@ -113,9 +149,9 @@
         <!-- Footer -->
         <tr>
           <td style="background-color:#f8f9fa; padding:16px 32px; border-top:1px solid #e9ecef;">
-            <p style="margin:0; font-size:12px; color:#888888; line-height:1.5;">
+            <p style="margin:0; font-size:12px; color:#888888; line-height:1.5; text-align:center;">
               Questions? Contact us at <a href="mailto:{{CONTACT_EMAIL}}" style="color:#1a3c5e;">{{CONTACT_EMAIL}}</a> or {{CONTACT_PHONE}}<br>
-              Thank you for your business.
+              Turrentine Jackson Morrow &bull; PO Box 1007 &bull; McKinney, TX 75070
             </p>
           </td>
         </tr>

@@ -110,6 +110,29 @@ Configurable via env var `ONEDRIVE_FILE_PATH`. Accessed using the `graph-api` sk
 2. Filter Transactions for TomBean_1 where Type is Utility_Pmt (payments)
 3. Balance = total billed - total paid
 
+### Send Lease Agreement
+
+Lease agreements are sent via Telegram chat. Tell the bot the lease details and it will generate a professional HTML lease and email it via Graph API.
+
+**Two lease types** (auto-selected by property type):
+- **Billboard lease** — for `billboard` properties. Formal outdoor advertising contract with display periods, vinyl details, payment terms.
+- **Rent house lease** — for all other properties (`rent_house`, `apartment`, `nnn_lease`). Simple month-to-month agreement.
+
+**How to use:**
+1. Tell the bot: "Send a lease to [tenant] for [Property_ID]" with details:
+   - Tenant/advertiser name and contact email
+   - Rent amount and start date
+   - Any custom terms (deposit, utilities, special provisions)
+   - For billboards: lit Y/N, size, number of periods, vinyl details
+2. Bot builds the job description and asks for confirmation
+3. On approval, bot calls `create_job` referencing `SEND_LEASE.md`
+4. Agent reads Excel for property data, renders the appropriate HTML template, and emails it
+
+**Templates:**
+- `operating_system/LEASE_BILLBOARD_TEMPLATE.html`
+- `operating_system/LEASE_RENT_HOUSE_TEMPLATE.html`
+- Agent instructions: `operating_system/SEND_LEASE.md`
+
 ### Contract Expiration Check
 1. Read Contracts sheet for active contracts
 2. Calculate days until Contract_End
