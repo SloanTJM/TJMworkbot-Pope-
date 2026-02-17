@@ -4,6 +4,8 @@
 
 ### Billboards (4-week billing cycles)
 
+Billboard leases are managed through a broker (**Reiss**), who contracts with advertisers on TJM's behalf. Reiss sends consolidated checks that may cover multiple boards' rent and vinyl install fees on a single check. When logging payments, split into one transaction row per Property_ID and Type (Rent or Install), all sharing the same Check_Num.
+
 | Property ID | Tenant | Rent | Billing |
 |-------------|--------|------|---------|
 | Board_304L | Walmart | $6,200 | 4-week |
@@ -80,6 +82,8 @@ Configurable via env var `ONEDRIVE_FILE_PATH`. Accessed using the `graph-api` sk
 ### Log a Payment
 1. Use `graph-api` skill to append a row to the Transactions sheet
 2. Fields: Date, Check_Num, Property_ID, Tenant, Type (usually "Rent"), Amount, Period, Notes
+3. **Billboard checks from Reiss** often cover multiple tenants and may include install fees — split into separate rows per Property_ID/Type, all with the same Check_Num:
+   - e.g., Check 5042 for $13,200 → Row 1: Board_304L / Rent / $6,200 + Row 2: Board_304R / Rent / $7,000
 
 ### Check Outstanding Rent
 1. Read Contracts sheet for active properties and expected rent amounts
