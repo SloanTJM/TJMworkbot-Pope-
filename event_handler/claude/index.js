@@ -62,14 +62,14 @@ async function callClaude(messages, tools) {
 
 /**
  * Process a conversation turn with Claude, handling tool calls
- * @param {string} userMessage - User's message
+ * @param {string|Array} userMessage - User's message (string or content array with text/image blocks)
  * @param {Array} history - Conversation history
  * @param {Array} toolDefinitions - Available tools
  * @param {Object} toolExecutors - Tool executor functions
  * @returns {Promise<{response: string, history: Array}>}
  */
 async function chat(userMessage, history, toolDefinitions, toolExecutors) {
-  // Add user message to history
+  // Add user message to history (accepts string or content array)
   const messages = [...history, { role: 'user', content: userMessage }];
 
   let response = await callClaude(messages, toolDefinitions);

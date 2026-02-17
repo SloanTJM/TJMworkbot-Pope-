@@ -63,10 +63,21 @@ The Excel file has two main sheets:
 
 ## Authentication
 
-Uses Azure AD client credentials flow. Requires these env vars (from LLM_SECRETS):
-- `AZURE_CLIENT_ID`
-- `AZURE_TENANT_ID`
-- `AZURE_CLIENT_SECRET`
-- `ONEDRIVE_USER_ID` — Microsoft 365 user ID or UPN
+Uses Azure AD delegated auth with a refresh token (public client / device code flow). Requires these env vars (from LLM_SECRETS):
+- `AZURE_CLIENT_ID` — Azure AD app client ID
+- `AZURE_TENANT_ID` — Azure AD tenant ID
+- `AZURE_REFRESH_TOKEN` — Delegated auth refresh token
 
 File path defaults to `/TJM/Real Estate/TJM_RENT_v2.xlsx` (override with `ONEDRIVE_FILE_PATH`).
+
+### Setup
+
+1. Azure Portal > App registrations > Your app > **Authentication** > Advanced settings > Set **"Allow public client flows"** to **Yes** > Save
+2. Run `node .pi/skills/graph-api/graph-setup.js` with `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` set
+3. Follow the on-screen instructions to sign in
+4. Add the printed `AZURE_REFRESH_TOKEN` to GitHub `LLM_SECRETS`
+5. Add the printed `AZURE_TOKEN_DATE` to the event handler `.env`
+
+### Token Renewal
+
+The refresh token expires ~90 days after creation. A weekly cron job checks the expiry and sends a Telegram warning 2 weeks before expiration. To renew, re-run `graph-setup.js` and update `LLM_SECRETS` and `.env`.

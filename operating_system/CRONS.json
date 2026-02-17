@@ -64,5 +64,12 @@
     "type": "agent",
     "job": "Read the file at operating_system/FINANCIAL_ADVISOR/FINANCIAL_ADVISOR.md and complete the tasks described there.",
     "enabled": true
+  },
+  {
+    "name": "check-azure-token-expiry",
+    "schedule": "0 9 * * 1",
+    "type": "command",
+    "command": "node event_handler/cron/check-token-expiry.js",
+    "enabled": true
   }
 ]

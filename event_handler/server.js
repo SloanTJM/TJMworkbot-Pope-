@@ -106,14 +106,14 @@ app.post('/telegram/webhook', async (req, res) => {
   if (message && message.chat && telegramBotToken) {
     const chatId = String(message.chat.id);
 
-    let messageText = null;
+    let messageContent = null; // string or content array for Claude
 
     if (message.text) {
-      messageText = message.text;
+      messageContent = message.text;
     }
 
     // Check for verification code - this works even before TELEGRAM_CHAT_ID is set
-    if (TELEGRAM_VERIFICATION && messageText === TELEGRAM_VERIFICATION) {
+    if (TELEGRAM_VERIFICATION && messageContent === TELEGRAM_VERIFICATION) {
       await sendMessage(telegramBotToken, chatId, `Your chat ID:\n<code>${chatId}</code>`);
       return res.status(200).json({ ok: true });
     }
@@ -140,7 +140,7 @@ app.post('/telegram/webhook', async (req, res) => {
 
       try {
         const { buffer, filename } = await downloadFile(telegramBotToken, message.voice.file_id);
-        messageText = await transcribeAudio(buffer, filename);
+        messageContent = await transcribeAudio(buffer, filename);
       } catch (err) {
         console.error('Failed to transcribe voice:', err);
         await sendMessage(telegramBotToken, chatId, 'Sorry, I could not transcribe your voice message.');
@@ -148,16 +148,54 @@ app.post('/telegram/webhook', async (req, res) => {
       }
     }
 
+    if (message.photo) {
+      // Handle photo messages — download largest size and send to Claude with vision
+      try {
+        const photo = message.photo[message.photo.length - 1]; // largest resolution
+        const { buffer } = await downloadFile(telegramBotToken, photo.file_id);
+        const base64 = buffer.toString('base64');
+        const caption = message.caption || 'What is in this image?';
+
+        messageContent = [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+          { type: 'text', text: caption },
+        ];
+      } catch (err) {
+        console.error('Failed to download photo:', err);
+        await sendMessage(telegramBotToken, chatId, 'Sorry, I could not process your image.');
+        return res.status(200).json({ ok: true });
+      }
+    }
+
+    if (message.document && message.document.mime_type && message.document.mime_type.startsWith('image/')) {
+      // Handle images sent as documents (uncompressed)
+      try {
+        const { buffer } = await downloadFile(telegramBotToken, message.document.file_id);
+        const base64 = buffer.toString('base64');
+        const mimeType = message.document.mime_type;
+        const caption = message.caption || 'What is in this image?';
+
+        messageContent = [
+          { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+          { type: 'text', text: caption },
+        ];
+      } catch (err) {
+        console.error('Failed to download document image:', err);
+        await sendMessage(telegramBotToken, chatId, 'Sorry, I could not process your image.');
+        return res.status(200).json({ ok: true });
+      }
+    }
+
     // Acknowledge receipt immediately so Telegram doesn't wait/retry
     res.status(200).json({ ok: true });
 
-    if (messageText) {
+    if (messageContent) {
       const stopTyping = startTypingIndicator(telegramBotToken, chatId);
       try {
         // Get conversation history and process with Claude
         const history = getHistory(chatId);
         const { response, history: newHistory } = await chat(
-          messageText,
+          messageContent,
           history,
           toolDefinitions,
           toolExecutors

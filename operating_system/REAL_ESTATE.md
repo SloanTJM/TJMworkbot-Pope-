@@ -99,3 +99,7 @@ Configurable via env var `ONEDRIVE_FILE_PATH`. Accessed using the `graph-api` sk
 - Invoice number format: `INV-{Property_ID}-{YYYYMMDD}`
 - Payment instructions: "Please make checks payable to TJM Real Estate."
 - Send via Microsoft Graph Mail API when email integration is configured
+
+## Maintenance
+
+- **Azure refresh token**: The Graph API skill uses a delegated auth refresh token that expires ~90 days after creation. Run `node .pi/skills/graph-api/graph-setup.js` to renew. A weekly cron checks expiry and sends a Telegram warning 2 weeks before expiration.

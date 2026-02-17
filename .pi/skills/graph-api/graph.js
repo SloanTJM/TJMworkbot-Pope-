@@ -9,11 +9,10 @@
  *   node graph.js sheets
  *
  * Environment variables (from LLM_SECRETS):
- *   AZURE_CLIENT_ID     - Azure AD app client ID
- *   AZURE_TENANT_ID     - Azure AD tenant ID
- *   AZURE_CLIENT_SECRET  - Azure AD app client secret
- *   ONEDRIVE_USER_ID    - Microsoft 365 user ID or UPN
- *   ONEDRIVE_FILE_PATH  - Excel file path (default: /TJM/Real Estate/TJM_RENT_v2.xlsx)
+ *   AZURE_CLIENT_ID      - Azure AD app client ID
+ *   AZURE_TENANT_ID      - Azure AD tenant ID
+ *   AZURE_REFRESH_TOKEN  - Delegated auth refresh token (from graph-setup.js)
+ *   ONEDRIVE_FILE_PATH   - Excel file path (default: /TJM/Real Estate/TJM_RENT_v2.xlsx)
  */
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
@@ -25,18 +24,18 @@ const DEFAULT_FILE_PATH = '/TJM/Real Estate/TJM_RENT_v2.xlsx';
 async function getAccessToken() {
   const clientId = process.env.AZURE_CLIENT_ID;
   const tenantId = process.env.AZURE_TENANT_ID;
-  const clientSecret = process.env.AZURE_CLIENT_SECRET;
+  const refreshToken = process.env.AZURE_REFRESH_TOKEN;
 
-  if (!clientId || !tenantId || !clientSecret) {
-    throw new Error('Missing Azure credentials. Need AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_CLIENT_SECRET');
+  if (!clientId || !tenantId || !refreshToken) {
+    throw new Error('Missing Azure credentials. Need AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_REFRESH_TOKEN');
   }
 
   const tokenUrl = TOKEN_URL_TEMPLATE.replace('{tenantId}', tenantId);
   const body = new URLSearchParams({
     client_id: clientId,
-    client_secret: clientSecret,
-    scope: 'https://graph.microsoft.com/.default',
-    grant_type: 'client_credentials',
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    scope: 'Files.ReadWrite User.Read Mail.Send offline_access',
   });
 
   const res = await fetch(tokenUrl, {
@@ -57,13 +56,10 @@ async function getAccessToken() {
 // --- Graph helpers ---
 
 function getWorkbookUrl() {
-  const userId = process.env.ONEDRIVE_USER_ID;
-  if (!userId) throw new Error('Missing ONEDRIVE_USER_ID env var');
-
   const filePath = process.env.ONEDRIVE_FILE_PATH || DEFAULT_FILE_PATH;
   // Encode the path, but keep forward slashes
   const encodedPath = filePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
-  return `${GRAPH_BASE}/users/${userId}/drive/root:${encodedPath}:/workbook`;
+  return `${GRAPH_BASE}/me/drive/root:${encodedPath}:/workbook`;
 }
 
 async function graphRequest(path, options = {}) {
