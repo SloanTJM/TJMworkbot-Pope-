@@ -12,12 +12,14 @@
  *   AZURE_CLIENT_ID      - Azure AD app client ID
  *   AZURE_TENANT_ID      - Azure AD tenant ID
  *   AZURE_REFRESH_TOKEN  - Delegated auth refresh token (from graph-setup.js)
- *   ONEDRIVE_FILE_PATH   - Excel file path (default: /TJM/Real Estate/TJM_RENT_v2.xlsx)
+ *   ONEDRIVE_FILE_ID     - Excel file ID (preferred, e.g., 01IJ3YPQTHFLZQC3BV6BDYFUVSYJ437DSF)
+ *   ONEDRIVE_FILE_PATH   - Excel file path (fallback: /TJM/Real Estate/TJM_RENT_v2.xlsx)
  */
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 const TOKEN_URL_TEMPLATE = 'https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token';
 const DEFAULT_FILE_PATH = '/TJM/Real Estate/TJM_RENT_v2.xlsx';
+const DEFAULT_FILE_ID = '01IJ3YPQTHFLZQC3BV6BDYFUVSYJ437DSF';
 
 // --- Auth ---
 
@@ -56,6 +58,13 @@ async function getAccessToken() {
 // --- Graph helpers ---
 
 function getWorkbookUrl() {
+  // Prefer file ID over path (more reliable for SharePoint files)
+  const fileId = process.env.ONEDRIVE_FILE_ID || DEFAULT_FILE_ID;
+  if (fileId) {
+    return `${GRAPH_BASE}/me/drive/items/${fileId}/workbook`;
+  }
+  
+  // Fallback to path-based access
   const filePath = process.env.ONEDRIVE_FILE_PATH || DEFAULT_FILE_PATH;
   // Encode the path, but keep forward slashes
   const encodedPath = filePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
