@@ -3,44 +3,48 @@
 /**
  * check-invoices.js - Daily check for upcoming invoice due dates
  *
- * Runs as a lightweight cron command on the event handler.
- * Checks if any tenant has rent due within the next 3 days.
- * If so, creates an agent job to generate and send invoice emails.
+ * Reads tenant data from the Contracts sheet in Excel (via Graph API),
+ * checks if any tenant has rent due within their Notify_Days window,
+ * and creates an agent job to generate and send invoice emails.
  *
  * No Docker container or LLM cost on days when no invoices are due.
  */
 
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
 const { createJob } = require(path.join(__dirname, '..', 'tools', 'create-job'));
+const { graphRequest } = require(path.join(__dirname, '..', '..', '.pi', 'skills', 'graph-api', 'graph.js'));
 
-// Tenant billing configurations
-// Add new tenants here as they're onboarded
-const TENANTS = [
-  {
-    name: 'Tom Bean Feed & Supply',
-    property_id: 'Board_TomBean',
-    billing_cycle: '4-week',
-    contract_start: '2025-12-01',
-    contract_end: '2026-05-18',
-    rent: 780,
-  },
-  // Billboard tenants (4-week cycles) — add as email addresses are collected
-  // { name: 'Walmart', property_id: 'Board_304L', billing_cycle: '4-week', contract_start: '...', contract_end: '...', rent: 6200 },
+const DEFAULT_NOTIFY_DAYS = 3;
 
-  // Monthly tenants — uncomment when ready
-  // { name: 'Jessie Lathom', property_id: 'Gunter_1', billing_cycle: 'monthly', rent: 800 },
-];
-
-const NOTIFY_DAYS = 3; // Send invoice this many days before due date
+/**
+ * Parse an Excel serial date number to a JS Date
+ * Excel serial: days since 1900-01-01 (with the Lotus 1-2-3 leap year bug)
+ */
+function excelSerialToDate(serial) {
+  if (typeof serial === 'number') {
+    // Excel epoch is Jan 1, 1900 but has a bug treating 1900 as leap year
+    // So serial 1 = Jan 1, 1900. We subtract 2 to adjust (1 for 0-index, 1 for leap bug)
+    const epoch = new Date(1900, 0, 1);
+    return new Date(epoch.getTime() + (serial - 2) * 86400000);
+  }
+  // If it's a string date, parse it
+  if (typeof serial === 'string' && serial) {
+    return new Date(serial + 'T00:00:00');
+  }
+  return null;
+}
 
 /**
  * Calculate the next due date for a 4-week billing cycle
  */
 function getNext4WeekDueDate(contractStart, today) {
-  const start = new Date(contractStart + 'T00:00:00');
-  const CYCLE_MS = 28 * 24 * 60 * 60 * 1000;
+  const start = excelSerialToDate(contractStart);
+  if (!start || isNaN(start.getTime())) return null;
 
-  let dueDate = new Date(start.getTime() + CYCLE_MS); // First due date is 28 days after start
+  const CYCLE_MS = 28 * 24 * 60 * 60 * 1000;
+  let dueDate = new Date(start.getTime() + CYCLE_MS);
   while (dueDate <= today) {
     dueDate = new Date(dueDate.getTime() + CYCLE_MS);
   }
@@ -54,16 +58,14 @@ function getNextMonthlyDueDate(today) {
   const year = today.getFullYear();
   const month = today.getMonth();
 
-  // Try 1st of current month
   const thisMonth = new Date(year, month, 1);
   if (thisMonth > today) return thisMonth;
 
-  // Otherwise 1st of next month
   return new Date(year, month + 1, 1);
 }
 
 /**
- * Check if a date is exactly N days from today
+ * Days between two dates (date parts only)
  */
 function daysUntil(targetDate, today) {
   const target = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
@@ -75,35 +77,101 @@ async function main() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  console.log(`[check-invoices] ${today.toISOString().split('T')[0]} — checking ${TENANTS.length} tenant(s)`);
+  console.log(`[check-invoices] ${today.toISOString().split('T')[0]} — reading Contracts from Excel`);
+
+  // Read Contracts sheet
+  let rows;
+  try {
+    const range = await graphRequest("/worksheets('Contracts')/usedRange");
+    rows = range?.values;
+  } catch (err) {
+    console.error(`[check-invoices] Failed to read Contracts sheet: ${err.message}`);
+    process.exit(1);
+  }
+
+  if (!rows || rows.length < 2) {
+    console.log('[check-invoices] No data in Contracts sheet. Done.');
+    return;
+  }
+
+  // Build column map from header row
+  const headers = rows[0];
+  const col = {};
+  headers.forEach((h, i) => { col[h] = i; });
+
+  const required = ['Property_ID', 'Tenant_Name', 'Contact_Email', 'Billing_Cycle', 'Active'];
+  for (const field of required) {
+    if (col[field] === undefined) {
+      console.error(`[check-invoices] Missing column: ${field}`);
+      process.exit(1);
+    }
+  }
+
+  const dataRows = rows.slice(1);
+  console.log(`[check-invoices] Found ${dataRows.length} tenant(s) in Excel`);
 
   const dueSoon = [];
 
-  for (const tenant of TENANTS) {
-    // Skip expired contracts
-    if (tenant.contract_end) {
-      const endDate = new Date(tenant.contract_end + 'T00:00:00');
-      if (endDate < today) {
-        console.log(`  ${tenant.name}: contract expired (${tenant.contract_end}), skipping`);
+  for (const row of dataRows) {
+    const propertyId = row[col['Property_ID']];
+    const tenantName = row[col['Tenant_Name']];
+    const email = row[col['Contact_Email']];
+    const billingCycle = row[col['Billing_Cycle']];
+    const active = row[col['Active']];
+    const contractStart = col['Contract_Start'] !== undefined ? row[col['Contract_Start']] : null;
+    const contractEnd = col['Contract_End'] !== undefined ? row[col['Contract_End']] : null;
+    const notifyDays = col['Notify_Days'] !== undefined && row[col['Notify_Days']]
+      ? Number(row[col['Notify_Days']])
+      : DEFAULT_NOTIFY_DAYS;
+
+    // Skip inactive
+    if (active !== true && active !== 'TRUE' && active !== 'true') {
+      console.log(`  ${tenantName}: inactive, skipping`);
+      continue;
+    }
+
+    // Skip if no email
+    if (!email) {
+      console.log(`  ${tenantName}: no email, skipping`);
+      continue;
+    }
+
+    // Skip pass-through
+    if (billingCycle === 'pass-through') {
+      console.log(`  ${tenantName}: pass-through billing, skipping`);
+      continue;
+    }
+
+    // Check expired contract
+    if (contractEnd) {
+      const endDate = excelSerialToDate(contractEnd);
+      if (endDate && endDate < today) {
+        console.log(`  ${tenantName}: contract expired, skipping`);
         continue;
       }
     }
 
+    // Calculate next due date
     let nextDue;
-    if (tenant.billing_cycle === '4-week') {
-      nextDue = getNext4WeekDueDate(tenant.contract_start, today);
-    } else if (tenant.billing_cycle === 'monthly') {
+    if (billingCycle === '4-week') {
+      nextDue = getNext4WeekDueDate(contractStart, today);
+    } else if (billingCycle === 'monthly') {
       nextDue = getNextMonthlyDueDate(today);
     } else {
-      console.log(`  ${tenant.name}: unsupported billing cycle "${tenant.billing_cycle}", skipping`);
+      console.log(`  ${tenantName}: unsupported billing cycle "${billingCycle}", skipping`);
       continue;
     }
 
-    // Check contract hasn't expired before this due date
-    if (tenant.contract_end) {
-      const endDate = new Date(tenant.contract_end + 'T00:00:00');
-      if (nextDue > endDate) {
-        console.log(`  ${tenant.name}: next due ${nextDue.toISOString().split('T')[0]} is past contract end, skipping`);
+    if (!nextDue) {
+      console.log(`  ${tenantName}: could not calculate due date, skipping`);
+      continue;
+    }
+
+    // Check due date isn't past contract end
+    if (contractEnd) {
+      const endDate = excelSerialToDate(contractEnd);
+      if (endDate && nextDue > endDate) {
+        console.log(`  ${tenantName}: next due date past contract end, skipping`);
         continue;
       }
     }
@@ -111,11 +179,11 @@ async function main() {
     const days = daysUntil(nextDue, today);
     const dueStr = nextDue.toISOString().split('T')[0];
 
-    if (days >= 0 && days <= NOTIFY_DAYS) {
-      console.log(`  ${tenant.name}: due ${dueStr} (${days} days away) — INVOICE NEEDED`);
-      dueSoon.push({ ...tenant, nextDue: dueStr, daysAway: days });
+    if (days >= 0 && days <= notifyDays) {
+      console.log(`  ${tenantName}: due ${dueStr} (${days} days away) — INVOICE NEEDED`);
+      dueSoon.push({ propertyId, tenantName, email, nextDue: dueStr, daysAway: days });
     } else {
-      console.log(`  ${tenant.name}: next due ${dueStr} (${days} days away)`);
+      console.log(`  ${tenantName}: next due ${dueStr} (${days} days away)`);
     }
   }
 

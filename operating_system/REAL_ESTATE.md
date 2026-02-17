@@ -39,6 +39,39 @@ TomBean_1 has no base rent. TJM pays utility bills, then invoices the tenant for
 
 Configurable via env var `ONEDRIVE_FILE_PATH`. Accessed using the `graph-api` skill.
 
+**The Excel workbook is the single source of truth for all property, tenant, and contract data.** Adding a tenant in the Contracts sheet (with an email address) automatically makes them eligible for automated invoicing.
+
+### Properties Sheet (columns A-H)
+
+| Column | Field | Description |
+|--------|-------|-------------|
+| A | Property_ID | Property identifier (e.g., Board_304L, Gunter_1) |
+| B | Property_Type | billboard, rent_house, apartment, nnn_lease |
+| C | Address | Street address |
+| D | City | City |
+| E | State | State |
+| F | ZIP | ZIP code |
+| G | Broker | Broker name (e.g., Reiss for billboards) |
+| H | Notes | Additional notes |
+
+### Contracts Sheet (columns A-M)
+
+| Column | Field | Description |
+|--------|-------|-------------|
+| A | Property_ID | Property identifier |
+| B | Tenant_Name | Current tenant |
+| C | Contact_Name | Tenant contact person |
+| D | Contact_Email | Email for invoices and communication |
+| E | Contact_Phone | Phone number |
+| F | Monthly_Rent | Rent amount |
+| G | Billing_Cycle | monthly, 4-week, pass-through |
+| H | Contract_Start | Lease start date |
+| I | Contract_End | Lease end date (or "M/M" for month-to-month) |
+| J | Active | Whether contract is active |
+| K | Notify_Days | Days before due date to send invoice (default 3) |
+| L | Vinyl_Required | Billboard vinyl replacement needed |
+| M | Notes | Contract notes |
+
 ### Transactions Sheet (columns A-H)
 
 | Column | Field | Description |
@@ -51,24 +84,6 @@ Configurable via env var `ONEDRIVE_FILE_PATH`. Accessed using the `graph-api` sk
 | F | Amount | Dollar amount |
 | G | Period | Billing period date |
 | H | Notes | Additional notes |
-
-### Contracts Sheet (columns A-M)
-
-| Column | Field | Description |
-|--------|-------|-------------|
-| A | Property_ID | Property identifier |
-| B | Property_Type | billboard, rent_house, apartment, nnn_lease |
-| C | Tenant_Name | Current tenant |
-| D | Monthly_Rent | Rent amount |
-| E | Billing_Cycle | monthly, 4-week, pass-through |
-| F | Contract_Start | Lease start date |
-| G | Contract_End | Lease end date |
-| H | Active | Whether contract is active |
-| I | Notify_Days | Days before expiry to start alerting |
-| J | Vinyl_Required | Billboard vinyl replacement needed |
-| K | Vinyl_Contact | Vinyl vendor contact |
-| L | Notes | Contract notes |
-| M | Email | Tenant email address |
 
 ## Transaction Types
 
@@ -103,13 +118,15 @@ Configurable via env var `ONEDRIVE_FILE_PATH`. Accessed using the `graph-api` sk
 ### Invoicing (Automated)
 
 Invoice emails are sent automatically via a daily cron job:
-- `check-invoices.js` runs daily at 9am and checks if any tenant has rent due within 3 days
+- `check-invoices.js` runs daily at 9am and reads the Contracts sheet from Excel
+- It filters for active tenants with an email address and a due date within their Notify_Days window
 - When invoices are due, it creates an agent job that reads `SEND_INVOICES.md`
-- The agent reads the Contracts sheet, renders HTML invoices from `INVOICE_EMAIL_TEMPLATE.html`, and sends via Graph API
+- The agent reads the Contracts and Properties sheets, renders HTML invoices from `INVOICE_EMAIL_TEMPLATE.html`, and sends via Graph API
 - Invoice number format: `INV-{Property_ID}-{YYYYMMDD}` (using the due date)
 - Payment instructions: "Please make checks payable to Turrentine Jackson Morrow."
 - Billboard tenants use 4-week billing cycles (due dates shift each period)
 - Monthly tenants are due on the 1st of each month
+- **To add a new tenant to invoicing:** add their row to the Contracts sheet with a Contact_Email — no code changes needed
 
 ## Maintenance
 

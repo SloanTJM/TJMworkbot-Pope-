@@ -1,6 +1,6 @@
 # Send Invoice Emails
 
-You have been triggered because one or more tenants have rent due within the next 3 days. Your job is to generate and send invoice emails.
+You have been triggered because one or more tenants have rent due within the next few days. Your job is to generate and send invoice emails.
 
 ## Steps
 
@@ -8,25 +8,47 @@ You have been triggered because one or more tenants have rent due within the nex
    ```bash
    node /job/.pi/skills/graph-api/graph.js read Contracts
    ```
-   - Row 1 is the header. Columns: Property_ID (A), Property_Type (B), Tenant_Name (C), Monthly_Rent (D), Billing_Cycle (E), Contract_Start (F), Contract_End (G), Active (H), Notify_Days (I), Vinyl_Required (J), Vinyl_Contact (K), Notes (L), Email (M)
+   Row 1 is the header. Columns A-M:
+   | Col | Field |
+   |-----|-------|
+   | A | Property_ID |
+   | B | Tenant_Name |
+   | C | Contact_Name |
+   | D | Contact_Email |
+   | E | Contact_Phone |
+   | F | Monthly_Rent |
+   | G | Billing_Cycle |
+   | H | Contract_Start |
+   | I | Contract_End |
+   | J | Active |
+   | K | Notify_Days |
+   | L | Vinyl_Required |
+   | M | Notes |
 
-2. **Filter to eligible tenants** — only process rows where:
-   - `Active` is `TRUE`
-   - `Email` is not empty
-   - The tenant has a due date within the next 3 days (see billing cycle rules below)
+2. **Read the Properties sheet** for property addresses:
+   ```bash
+   node /job/.pi/skills/graph-api/graph.js read Properties
+   ```
+   Columns A-H: Property_ID, Property_Type, Address, City, State, ZIP, Broker, Notes
 
-3. **For each eligible tenant**, render the invoice email:
+3. **Filter to eligible tenants** — only process rows where:
+   - `Active` (J) is `TRUE`
+   - `Contact_Email` (D) is not empty
+   - `Billing_Cycle` (G) is not `pass-through`
+   - The tenant has a due date within the next few days (use per-tenant `Notify_Days` from column K, default 3)
+
+4. **For each eligible tenant**, render the invoice email:
    - Read the HTML template at `operating_system/INVOICE_EMAIL_TEMPLATE.html`
    - Replace all placeholders (see below)
    - Write the rendered HTML to `/job/tmp/invoice_<Property_ID>.html`
    - Send via: `node /job/.pi/skills/graph-api/graph.js send-mail "<email>" "<subject>" "@/job/tmp/invoice_<Property_ID>.html"`
 
-4. **Log results** — print a summary of what was sent and any errors.
+5. **Log results** — print a summary of what was sent and any errors.
 
 ## Billing Cycle Rules
 
 ### Monthly (`Billing_Cycle = "monthly"`)
-Due on the 1st of each month. Send invoice 3 days before (around the 28th-29th of the prior month).
+Due on the 1st of each month. Send invoice within Notify_Days before (e.g., around the 28th-29th of the prior month for 3-day notice).
 
 ### 4-Week (`Billing_Cycle = "4-week"`)
 Due every 28 days from `Contract_Start`. To calculate the next due date:
@@ -34,7 +56,7 @@ Due every 28 days from `Contract_Start`. To calculate the next due date:
 2. Add 28 days repeatedly until you reach a date in the future
 3. That's the next due date
 
-**Example:** Contract starts 2025-12-01. Due dates: 2025-12-29, 2026-01-26, 2026-02-23, 2026-03-23, 2026-04-20, 2026-05-18.
+**Note:** Contract_Start and Contract_End may be Excel serial date numbers. Convert them: serial number is days since 1900-01-01 (subtract 2 for the Lotus bug, then add to Jan 1, 1900).
 
 ### Pass-Through (`Billing_Cycle = "pass-through"`)
 Skip — these are utility-only properties with no regular rent invoice.
@@ -45,34 +67,15 @@ Skip — these are utility-only properties with no regular rent invoice.
 |---|---|
 | `{{DATE}}` | Today's date (e.g., February 16, 2026) |
 | `{{INVOICE_NUMBER}}` | `INV-<Property_ID>-<YYYYMMDD>` using the due date |
-| `{{TENANT_NAME}}` | From Contracts `Tenant_Name` |
-| `{{TENANT_ADDRESS}}` | From Contracts `Notes` field (contains mailing address) |
-| `{{TENANT_CITY_STATE_ZIP}}` | Leave blank if not separately available (address is in Notes) |
-| `{{PROPERTY_ADDRESS}}` | Look up from the property table below |
-| `{{RENT_AMOUNT}}` | From Contracts `Monthly_Rent`, formatted as `$X,XXX.00` |
+| `{{TENANT_NAME}}` | From Contracts `Tenant_Name` (col B) |
+| `{{PROPERTY_ADDRESS}}` | From Properties sheet: `Address, City, State ZIP` (look up by Property_ID) |
+| `{{RENT_AMOUNT}}` | From Contracts `Monthly_Rent` (col F), formatted as `$X,XXX.00` |
 | `{{DUE_DATE}}` | The calculated due date (e.g., February 23, 2026) |
 | `{{PAYABLE_ENTITY}}` | `Turrentine Jackson Morrow` |
 | `{{CONTACT_EMAIL}}` | `Sloan@tjmfuneral.com` |
 | `{{CONTACT_PHONE}}` | `(972) 632-2787` |
 
-If `{{TENANT_ADDRESS}}` or `{{TENANT_CITY_STATE_ZIP}}` cannot be parsed from the Notes field, omit those lines from the rendered HTML (remove the `<br>` too so there's no blank line).
-
-## Property Address Lookup
-
-| Property_ID | Address |
-|---|---|
-| Board_304L | US 75 Northbound, Sherman, TX |
-| Board_304R | US 75 Northbound, Sherman, TX |
-| Board_305L | US 75 Southbound, Sherman, TX |
-| Board_305R | US 75 Southbound, Sherman, TX |
-| Board_TomBean | 7816 W Highway 11, Tom Bean, TX 75489 |
-| Gunter_1 | 105 N 5th St, Gunter, TX 75058 |
-| Leonard_1 | Leonard, TX |
-| WolfeCity_1 | Wolfe City, TX |
-| WolfeCity_2 | Wolfe City, TX |
-| Gainesville_1 | Gainesville, TX |
-| Celina | Celina, TX |
-| TomBean_1 | Tom Bean, TX |
+If the tenant's address is not available, omit the tenant address lines from the rendered HTML (remove the `<br>` too so there's no blank line).
 
 ## Sender Info
 

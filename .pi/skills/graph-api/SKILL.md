@@ -13,7 +13,7 @@ node /job/.pi/skills/graph-api/graph.js read <sheetName> [startRow] [endRow]
 
 Reads rows from a worksheet. Returns JSON array of row arrays.
 
-- `sheetName` — Sheet name (e.g., `Transactions`, `Contracts`)
+- `sheetName` — Sheet name (e.g., `Transactions`, `Contracts`, `Properties`)
 - `startRow` — Optional start row (1-based, default: 1)
 - `endRow` — Optional end row (default: all rows)
 
@@ -25,6 +25,9 @@ node /job/.pi/skills/graph-api/graph.js read Transactions
 
 # Read first 10 rows of Contracts
 node /job/.pi/skills/graph-api/graph.js read Contracts 1 10
+
+# Read Properties sheet
+node /job/.pi/skills/graph-api/graph.js read Properties
 ```
 
 ## Append a Row
@@ -75,13 +78,49 @@ node /job/.pi/skills/graph-api/graph.js send-mail "tenant@example.com" "Rent Inv
 node /job/.pi/skills/graph-api/graph.js send-mail "tenant@example.com" "Rent Invoice - January 2026" "@/job/tmp/invoice.html"
 ```
 
+## Create Sheet
+
+```bash
+node /job/.pi/skills/graph-api/graph.js create-sheet <name>
+```
+
+Creates a new worksheet tab in the workbook.
+
+## Write Range
+
+```bash
+node /job/.pi/skills/graph-api/graph.js write-range <sheet> <range> <json_2d_array>
+```
+
+Writes data to a specific cell range. Overwrites existing data.
+
+- `sheet` — Sheet name
+- `range` — Cell range (e.g., `A1:H13`)
+- `json_2d_array` — 2D JSON array of values
+
+**Example:**
+
+```bash
+node /job/.pi/skills/graph-api/graph.js write-range Properties 'A1:C2' '[["ID","Type","Address"],["Gunter_1","rent_house","105 N 5th St"]]'
+```
+
+## Clear Sheet
+
+```bash
+node /job/.pi/skills/graph-api/graph.js clear-sheet <sheet>
+```
+
+Clears all data from a worksheet (keeps the sheet itself).
+
 ## Data Reference
 
-The Excel file has two main sheets:
+The Excel file has three sheets:
+
+**Properties** (columns A-H): Property_ID, Property_Type, Address, City, State, ZIP, Broker, Notes
+
+**Contracts** (columns A-M): Property_ID, Tenant_Name, Contact_Name, Contact_Email, Contact_Phone, Monthly_Rent, Billing_Cycle, Contract_Start, Contract_End, Active, Notify_Days, Vinyl_Required, Notes
 
 **Transactions** (columns A-H): Date, Check_Num, Property_ID, Tenant, Type, Amount, Period, Notes
-
-**Contracts** (columns A-M): Property_ID, Property_Type, Tenant_Name, Monthly_Rent, Billing_Cycle, Contract_Start, Contract_End, Active, Notify_Days, Vinyl_Required, Vinyl_Contact, Notes, Email
 
 ## Authentication
 

@@ -8,6 +8,9 @@
  *   node graph.js append <sheetName> <json_array>
  *   node graph.js sheets
  *   node graph.js send-mail <to> <subject> <htmlBody|@filepath>
+ *   node graph.js create-sheet <name>
+ *   node graph.js write-range <sheet> <range> <json_2d_array>
+ *   node graph.js clear-sheet <sheet>
  *
  * Environment variables (from LLM_SECRETS):
  *   AZURE_CLIENT_ID      - Azure AD app client ID
@@ -145,6 +148,56 @@ async function appendRow(sheetName, rowData) {
   console.log(`Row appended to ${sheetName} at row ${nextRow}`);
 }
 
+async function createSheet(name) {
+  const data = await graphRequest('/worksheets/add', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+  console.log(`Sheet created: ${data.name}`);
+  return data;
+}
+
+async function writeRange(sheetName, range, jsonData) {
+  let values;
+  try {
+    values = JSON.parse(jsonData);
+  } catch (e) {
+    throw new Error(`Invalid JSON for range data: ${e.message}`);
+  }
+
+  if (!Array.isArray(values) || !Array.isArray(values[0])) {
+    throw new Error('Range data must be a 2D JSON array');
+  }
+
+  await graphRequest(`/worksheets('${encodeURIComponent(sheetName)}')/range(address='${range}')`, {
+    method: 'PATCH',
+    body: JSON.stringify({ values }),
+  });
+
+  console.log(`Wrote ${values.length} row(s) to ${sheetName}!${range}`);
+}
+
+async function clearSheet(sheetName) {
+  try {
+    const range = await graphRequest(`/worksheets('${encodeURIComponent(sheetName)}')/usedRange`);
+    if (range && range.address) {
+      await graphRequest(`/worksheets('${encodeURIComponent(sheetName)}')/usedRange/clear`, {
+        method: 'POST',
+        body: JSON.stringify({ applyTo: 'All' }),
+      });
+      console.log(`Cleared sheet: ${sheetName}`);
+    } else {
+      console.log(`Sheet ${sheetName} is already empty`);
+    }
+  } catch (err) {
+    if (err.message.includes('ItemNotFound')) {
+      console.log(`Sheet ${sheetName} is already empty`);
+    } else {
+      throw err;
+    }
+  }
+}
+
 async function sendMail(to, subject, htmlBody) {
   // Support @filepath syntax — read HTML from file
   if (htmlBody.startsWith('@')) {
@@ -178,6 +231,9 @@ async function main() {
     console.error('  node graph.js append <sheetName> <json_array>');
     console.error('  node graph.js sheets');
     console.error('  node graph.js send-mail <to> <subject> <htmlBody|@filepath>');
+    console.error('  node graph.js create-sheet <name>');
+    console.error('  node graph.js write-range <sheet> <range> <json_2d_array>');
+    console.error('  node graph.js clear-sheet <sheet>');
     process.exit(1);
   }
 
@@ -222,14 +278,50 @@ async function main() {
       break;
     }
 
+    case 'create-sheet': {
+      const name = args[0];
+      if (!name) {
+        console.error('Error: sheet name required');
+        process.exit(1);
+      }
+      await createSheet(name);
+      break;
+    }
+
+    case 'write-range': {
+      const sheetName = args[0];
+      const range = args[1];
+      const jsonData = args[2];
+      if (!sheetName || !range || !jsonData) {
+        console.error('Error: sheet name, range, and JSON 2D array required');
+        process.exit(1);
+      }
+      await writeRange(sheetName, range, jsonData);
+      break;
+    }
+
+    case 'clear-sheet': {
+      const sheetName = args[0];
+      if (!sheetName) {
+        console.error('Error: sheet name required');
+        process.exit(1);
+      }
+      await clearSheet(sheetName);
+      break;
+    }
+
     default:
       console.error(`Unknown command: ${command}`);
-      console.error('Valid commands: read, append, sheets, send-mail');
+      console.error('Valid commands: read, append, sheets, send-mail, create-sheet, write-range, clear-sheet');
       process.exit(1);
   }
 }
 
-main().catch(err => {
-  console.error(`Error: ${err.message}`);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(err => {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  });
+}
+
+module.exports = { getAccessToken, graphRequest, getWorkbookUrl };

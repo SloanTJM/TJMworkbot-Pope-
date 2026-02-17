@@ -148,13 +148,15 @@ app.post('/telegram/webhook', async (req, res) => {
       }
     }
 
+    const defaultImagePrompt = 'Examine this image carefully. If it is a check, extract ALL details: exact dollar amount (numbers and written), payee, payer/from, date, check number, memo/for line, and bank name. Read every field precisely — do not guess or approximate amounts.';
+
     if (message.photo) {
       // Handle photo messages — download largest size and send to Claude with vision
       try {
         const photo = message.photo[message.photo.length - 1]; // largest resolution
         const { buffer } = await downloadFile(telegramBotToken, photo.file_id);
         const base64 = buffer.toString('base64');
-        const caption = message.caption || 'What is in this image?';
+        const caption = message.caption || defaultImagePrompt;
 
         messageContent = [
           { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
@@ -173,7 +175,7 @@ app.post('/telegram/webhook', async (req, res) => {
         const { buffer } = await downloadFile(telegramBotToken, message.document.file_id);
         const base64 = buffer.toString('base64');
         const mimeType = message.document.mime_type;
-        const caption = message.caption || 'What is in this image?';
+        const caption = message.caption || defaultImagePrompt;
 
         messageContent = [
           { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
