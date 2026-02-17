@@ -109,9 +109,17 @@ jobs:
 
           echo "allowed=$ALL_OK" >> "$GITHUB_OUTPUT"
 
+      - name: Extract GH_TOKEN from SECRETS
+        if: steps.merge-check.outputs.mergeable == 'MERGEABLE' && steps.check-setting.outputs.enabled == 'true' && steps.check-paths.outputs.allowed == 'true'
+        id: secrets
+        run: |
+          GH_PAT=$(echo '${{ secrets.SECRETS }}' | base64 -d | jq -r '.GH_TOKEN')
+          echo "::add-mask::$GH_PAT"
+          echo "gh_token=$GH_PAT" >> "$GITHUB_OUTPUT"
+
       - name: Merge PR
         if: steps.merge-check.outputs.mergeable == 'MERGEABLE' && steps.check-setting.outputs.enabled == 'true' && steps.check-paths.outputs.allowed == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.secrets.outputs.gh_token }}
         run: |
           gh pr merge ${{ github.event.pull_request.number }} --squash --repo "${{ github.repository }}"

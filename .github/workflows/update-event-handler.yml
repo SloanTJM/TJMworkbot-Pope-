@@ -118,8 +118,8 @@ jobs:
               }
             }' > /tmp/payload.json
 
-          # 7. Send to event handler
-          curl -s -X POST "${{ vars.GH_WEBHOOK_URL }}/github/webhook" \
+          # 7. Send to event handler (-k for self-signed cert)
+          curl -sk -X POST "${{ vars.GH_WEBHOOK_URL }}/github/webhook" \
             -H "Content-Type: application/json" \
             -H "X-GitHub-Event: pull_request" \
             -H "X-GitHub-Webhook-Secret-Token: ${{ secrets.GH_WEBHOOK_SECRET }}" \
