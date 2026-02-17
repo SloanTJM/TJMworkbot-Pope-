@@ -10,6 +10,7 @@
 | Board_304R | HEB | $7,000 | 4-week |
 | Board_305L | Choctaw | $6,200 | 4-week |
 | Board_305R | Specs | $7,258 | 4-week |
+| Board_TomBean | Tom Bean Feed & Supply | $780 | 4-week |
 
 ### Rental Houses (monthly billing)
 
@@ -32,7 +33,7 @@ TomBean_1 has no base rent. TJM pays utility bills, then invoices the tenant for
 
 ## Data Location
 
-**OneDrive Excel file:** `/TJM/Real Estate/TJM_RENT_v2.xlsx`
+**OneDrive Excel file:** `/Work/Real Estate/TJM_RENT_v2.xlsx`
 
 Configurable via env var `ONEDRIVE_FILE_PATH`. Accessed using the `graph-api` skill.
 
@@ -95,10 +96,16 @@ Configurable via env var `ONEDRIVE_FILE_PATH`. Accessed using the `graph-api` sk
 2. Calculate days until Contract_End
 3. Alert at milestones: 90, 60, 30, 14, 7 days
 
-### Invoicing
-- Invoice number format: `INV-{Property_ID}-{YYYYMMDD}`
-- Payment instructions: "Please make checks payable to TJM Real Estate."
-- Send via Microsoft Graph Mail API when email integration is configured
+### Invoicing (Automated)
+
+Invoice emails are sent automatically via a daily cron job:
+- `check-invoices.js` runs daily at 9am and checks if any tenant has rent due within 3 days
+- When invoices are due, it creates an agent job that reads `SEND_INVOICES.md`
+- The agent reads the Contracts sheet, renders HTML invoices from `INVOICE_EMAIL_TEMPLATE.html`, and sends via Graph API
+- Invoice number format: `INV-{Property_ID}-{YYYYMMDD}` (using the due date)
+- Payment instructions: "Please make checks payable to Turrentine Jackson Morrow."
+- Billboard tenants use 4-week billing cycles (due dates shift each period)
+- Monthly tenants are due on the 1st of each month
 
 ## Maintenance
 

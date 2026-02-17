@@ -71,5 +71,12 @@
     "type": "command",
     "command": "node event_handler/cron/check-token-expiry.js",
     "enabled": true
+  },
+  {
+    "name": "check-invoices",
+    "schedule": "0 9 * * *",
+    "type": "command",
+    "command": "node event_handler/cron/check-invoices.js",
+    "enabled": true
   }
 ]

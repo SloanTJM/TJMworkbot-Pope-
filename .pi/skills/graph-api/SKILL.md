@@ -53,6 +53,28 @@ node /job/.pi/skills/graph-api/graph.js sheets
 
 Lists all worksheet names in the workbook.
 
+## Send Email
+
+```bash
+node /job/.pi/skills/graph-api/graph.js send-mail <to> <subject> <htmlBody|@filepath>
+```
+
+Sends an email via Microsoft Graph (from the authenticated user's mailbox).
+
+- `to` — Recipient email address
+- `subject` — Email subject line
+- `htmlBody` — HTML body as a string, or `@filepath` to read HTML from a file
+
+**Examples:**
+
+```bash
+# Send inline HTML
+node /job/.pi/skills/graph-api/graph.js send-mail "tenant@example.com" "Rent Invoice" "<h1>Invoice</h1><p>Amount due: $800</p>"
+
+# Send HTML from file
+node /job/.pi/skills/graph-api/graph.js send-mail "tenant@example.com" "Rent Invoice - January 2026" "@/job/tmp/invoice.html"
+```
+
 ## Data Reference
 
 The Excel file has two main sheets:
@@ -68,7 +90,7 @@ Uses Azure AD delegated auth with a refresh token (public client / device code f
 - `AZURE_TENANT_ID` — Azure AD tenant ID
 - `AZURE_REFRESH_TOKEN` — Delegated auth refresh token
 
-File path defaults to `/TJM/Real Estate/TJM_RENT_v2.xlsx` (override with `ONEDRIVE_FILE_PATH`).
+File path defaults to `/Work/Real Estate/TJM_RENT_v2.xlsx` (override with `ONEDRIVE_FILE_PATH`).
 
 ### Setup
 

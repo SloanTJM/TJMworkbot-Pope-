@@ -7,17 +7,18 @@
  *   node graph.js read <sheetName> [startRow] [endRow]
  *   node graph.js append <sheetName> <json_array>
  *   node graph.js sheets
+ *   node graph.js send-mail <to> <subject> <htmlBody|@filepath>
  *
  * Environment variables (from LLM_SECRETS):
  *   AZURE_CLIENT_ID      - Azure AD app client ID
  *   AZURE_TENANT_ID      - Azure AD tenant ID
  *   AZURE_REFRESH_TOKEN  - Delegated auth refresh token (from graph-setup.js)
- *   ONEDRIVE_FILE_PATH   - Excel file path (default: /TJM/Real Estate/TJM_RENT_v2.xlsx)
+ *   ONEDRIVE_FILE_PATH   - Excel file path (default: /Work/Real Estate/TJM_RENT_v2.xlsx)
  */
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 const TOKEN_URL_TEMPLATE = 'https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token';
-const DEFAULT_FILE_PATH = '/TJM/Real Estate/TJM_RENT_v2.xlsx';
+const DEFAULT_FILE_PATH = '/Work/Real Estate/TJM_RENT_v2.xlsx';
 
 // --- Auth ---
 
@@ -80,7 +81,7 @@ async function graphRequest(path, options = {}) {
     throw new Error(`Graph API error (${res.status}): ${text}`);
   }
 
-  if (res.status === 204) return null;
+  if (res.status === 204 || res.status === 202) return null;
   return res.json();
 }
 
@@ -144,6 +145,28 @@ async function appendRow(sheetName, rowData) {
   console.log(`Row appended to ${sheetName} at row ${nextRow}`);
 }
 
+async function sendMail(to, subject, htmlBody) {
+  // Support @filepath syntax — read HTML from file
+  if (htmlBody.startsWith('@')) {
+    const fs = require('fs');
+    const filePath = htmlBody.slice(1);
+    htmlBody = fs.readFileSync(filePath, 'utf-8');
+  }
+
+  await graphRequest(`${GRAPH_BASE}/me/sendMail`, {
+    method: 'POST',
+    body: JSON.stringify({
+      message: {
+        subject,
+        body: { contentType: 'HTML', content: htmlBody },
+        toRecipients: [{ emailAddress: { address: to } }],
+      },
+    }),
+  });
+
+  console.log(`Email sent to ${to}: "${subject}"`);
+}
+
 // --- Main ---
 
 async function main() {
@@ -154,6 +177,7 @@ async function main() {
     console.error('  node graph.js read <sheetName> [startRow] [endRow]');
     console.error('  node graph.js append <sheetName> <json_array>');
     console.error('  node graph.js sheets');
+    console.error('  node graph.js send-mail <to> <subject> <htmlBody|@filepath>');
     process.exit(1);
   }
 
@@ -185,9 +209,22 @@ async function main() {
       break;
     }
 
+    case 'send-mail': {
+      const to = args[0];
+      const subject = args[1];
+      const body = args[2];
+      if (!to || !subject || !body) {
+        console.error('Error: to, subject, and htmlBody required');
+        console.error('  node graph.js send-mail <to> <subject> <htmlBody|@filepath>');
+        process.exit(1);
+      }
+      await sendMail(to, subject, body);
+      break;
+    }
+
     default:
       console.error(`Unknown command: ${command}`);
-      console.error('Valid commands: read, append, sheets');
+      console.error('Valid commands: read, append, sheets, send-mail');
       process.exit(1);
   }
 }
